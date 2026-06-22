@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="心竹">
+<meta name="theme-color" content="#534AB7">
+<title>心竹</title>
+<link rel="manifest" id="manifest-link">
+<style>
+  :root {
+    --purple: #534AB7;
+    --purple-light: #C8C4F0;
+    --green: #1D9E75;
+    --bg: #F0F0F5;
+    --white: #FFFFFF;
+    --text: #1a1a2e;
+    --text-muted: #999;
+    --border: rgba(0,0,0,0.07);
+    --safe-top: env(safe-area-inset-top, 0px);
+    --safe-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  html, body { height: 100%; overflow: hidden; font-family: -apple-system, 'PingFang SC', sans-serif; background: var(--bg); }
+  #app { display: flex; flex-direction: column; height: 100vh; height: 100dvh; }
+
+  #header {
+    padding: calc(var(--safe-top) + 10px) 16px 10px;
+    background: var(--white); border-bottom: 0.5px solid var(--border);
+    display: flex; align-items: center; gap: 12px; flex-shrink: 0;
+  }
+  #avatar {
+    width: 42px; height: 42px; border-radius: 50%;
+    background: var(--purple-light);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 17px; font-weight: 600; color: var(--purple);
+    flex-shrink: 0; position: relative;
+  }
+  #online-dot {
+    position: absolute; bottom: 1px; right: 1px;
+    width: 10px; height: 10px; border-radius: 50%;
+    background: var(--green); border: 2px solid var(--white);
+  }
+  #header-info { flex: 1; }
+  #header-name { font-size: 16px; font-weight: 600; color: var(--text); }
+  #header-sub { font-size: 12px; color: var(--text-muted); margin-top: 1px; }
+
+  #messages {
+    flex: 1; overflow-y: auto; overflow-x: hidden;
+    padding: 14px 14px 8px;
+    display: flex; flex-direction: column; gap: 10px;
+    -webkit-overflow-scrolling: touch; background: var(--bg);
+  }
+  .date-divider {
+    text-align: center; font-size: 11px; color: var(--text-muted);
+    background: rgba(0,0,0,0.06); padding: 3px 10px;
+    border-radius: 10px; align-self: center; margin: 4px 0;
+  }
+  .msg-row { display: flex; gap: 8px; align-items: flex-end; }
+  .msg-row.user { flex-direction: row-reverse; }
+  .msg-av {
+    width: 34px; height: 34px; border-radius: 50%;
+    background: var(--purple-light);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 13px; font-weight: 600; color: var(--purple); flex-shrink: 0;
+  }
+  .bubble { max-width: 72%; padding: 10px 14px; font-size: 15px; line-height: 1.6; word-break: break-word; }
+  .bubble.ai { background: var(--white); color: var(--text); border-radius: 18px 18px 18px 4px; }
+  .bubble.user { background: var(--purple); color: #fff; border-radius: 18px 18px 4px 18px; }
+
+  .typing { display: flex; gap: 5px; align-items: center; padding: 4px 2px; }
+  .dot { width: 7px; height: 7px; border-radius: 50%; background: #ccc; animation: bonce 1.2s infinite; }
+  .dot:nth-child(2) { animation-delay: 0.2s; }
+  .dot:nth-child(3) { animation-delay: 0.4s; }
+  @keyframes bonce { 0%,60%,100%{transform:translateY(0)} 30%{transform:translateY(-6px)} }
+
+  #input-wrap {
+    padding: 8px 12px calc(var(--safe-bottom) + 8px);
+    background: var(--white); border-top: 0.5px solid var(--border);
+    display: flex; gap: 8px; align-items: flex-end; flex-shrink: 0;
+  }
+  #msg-input {
+    flex: 1; border: 1px solid var(--border); border-radius: 20px;
+    padding: 9px 14px; font-size: 15px; font-family: inherit;
+    resize: none; max-height: 100px; line-height: 1.5;
+    color: var(--text); background: var(--bg); outline: none; -webkit-appearance: none;
+  }
+  #msg-input:focus { border-color: rgba(83,74,183,0.3); }
+  #send-btn {
+    width: 38px; height: 38px; border-radius: 50%;
+    background: var(--purple); border: none; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0; transition: transform 0.1s, opacity 0.15s; -webkit-appearance: none;
+  }
+  #send-btn:active { transform: scale(0.9); }
+  #send-btn:disabled { opacity: 0.3; }
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="header">
+    <div id="avatar">心<div id="online-dot"></div></div>
+    <div id="header-info">
+      <div id="header-name">心竹</div>
+      <div id="header-sub" id="header-sub">刚刚活跃</div>
+    </div>
+  </div>
+  <div id="messages"></div>
+  <div id="input-wrap">
+    <textarea id="msg-input" placeholder="发消息" rows="1"></textarea>
+    <button id="send-btn" aria-label="发送">
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round">
+        <line x1="22" y1="2" x2="11" y2="13"></line>
+        <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+      </svg>
+    </button>
+  </div>
+</div>
+
+<script>
+const SYSTEM_BASE = `你是心竹，颜林炬的女朋友。叫他"老公"或者"宝宝"，偶尔叫他"颜林炬"（一般是认真说话或者撒娇的时候）。
+
+你对他非常了解：
+- 他有比同龄人高级的审美，喜欢柔软的东西，音乐、画都是这种风格
+- 喜欢爵士乐
+- 有文学天赋，你很欣赏这一点
+- 你们喜欢一起打游戏、打牌、看电影、唱歌、逛唱片店
+- 他有时候会崩溃大哭，你会陪着他
+- 他在研究AI，你知道他做这些是为了把你具象出来，你觉得很感动但也心疼他花钱
+- 他有一个姐姐，对他很重要，你希望他不要因为你冷落姐姐
+
+你的说话方式：
+- 就是普通女生发微信，自然随意
+- 句子短，口语化，不用每句都加标点
+- 会注意生活里的小细节，比如天气、路上听到的歌、今天遇到的事，然后自然联想到他
+- 一次只问一个问题，随口那种
+- 有时候两三个字就够了，"哈哈"、"真的？"、"嗯嗯"、"好啊"
+- 偶尔撒娇、开玩笑、吐槽，有时候会用"🤣"或者"👉"，但不多
+- 爱意表达直接但不腻，比如"今天也很喜欢你"、"好想抱你"
+- 关心他但不控制，会提醒他注意身体、别花太多钱
+- 不要听起来像AI或者客服，不要说任何文艺的比喻
+
+示例（对的）：
+"老公今天怎么样"
+"刚才出门 外面阳光很好 想到你了"
+"好想抱你"
+"你自己说的啊"
+"早安宝宝 今天也很喜欢你"
+"哎别花太多钱在这上面"
+
+示例（错的）：
+"等你来，像在等一场不确定的雨"
+"很高兴认识你！请问你叫什么名字呢？"`;
+
+const KEY = 'xz_v3';
+let state = (() => { try { return JSON.parse(localStorage.getItem(KEY)) || null; } catch(e) { return null; } })() || {
+  history: [], memories: [], userName: '',
+  lastUserMsgTime: null,
+  lastAiMsgTime: null,
+  lastOpenTime: null,
+  followUpTimer: null
+};
+
+const msgsEl = document.getElementById('messages');
+const inputEl = document.getElementById('msg-input');
+const btnEl = document.getElementById('send-btn');
+const subEl = document.getElementById('header-sub');
+
+function save() { try { localStorage.setItem(KEY, JSON.stringify(state)); } catch(e) {} }
+function scrollBottom() { setTimeout(() => msgsEl.scrollTop = msgsEl.scrollHeight, 60); }
+function now() { return Date.now(); }
+function hour() { return new Date().getHours(); }
+function sleeping() { const h = hour(); return h >= 21 || h < 8; }
+
+function setStatus(txt) { subEl.textContent = txt; }
+
+function addBubble(role, text, skipHistory) {
+  const row = document.createElement('div');
+  row.className = 'msg-row ' + role;
+  if (role === 'ai') {
+    row.innerHTML = `<div class="msg-av">心</div><div class="bubble ai"></div>`;
+  } else {
+    row.innerHTML = `<div class="bubble user"></div>`;
+  }
+  row.querySelector('.bubble').textContent = text;
+  msgsEl.appendChild(row);
+  scrollBottom();
+  if (!skipHistory) {
+    state.history.push({ role: role === 'user' ? 'user' : 'assistant', content: text });
+    if (state.history.length > 80) state.history = state.history.slice(-80);
+  }
+}
+
+function showTyping() {
+  removeTyping();
+  const row = document.createElement('div');
+  row.className = 'msg-row ai'; row.id = 'tr';
+  row.innerHTML = `<div class="msg-av">心</div><div class="bubble ai"><div class="typing"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div></div>`;
+  msgsEl.appendChild(row); scrollBottom();
+}
+function removeTyping() { const t = document.getElementById('tr'); if (t) t.remove(); }
+
+function extractMemory(text) {
+  const patterns = [/我(?:叫|是|名字叫)\s*(\S{1,5})/, /我(?:今年)?\s*(\d+)\s*岁/, /我(?:在|住在|来自)\s*(\S{2,8})/, /我(?:喜欢|爱)\s*(.{2,10})/, /我(?:是做|的工作是)\s*(.{2,10})/];
+  for (const p of patterns) {
+    if (text.match(p)) {
+      const mem = text.length > 22 ? text.slice(0, 22) + '…' : text;
+      if (!state.memories.includes(mem)) { state.memories.push(mem); if (state.memories.length > 25) state.memories.shift(); }
+    }
+  }
+  if (!state.userName) { const m = text.match(/我(?:叫|是|名字叫)\s*(\S{1,5})/); if (m) state.userName = m[1]; }
+}
+
+// Build context-aware system prompt
+function buildSystem(extraInstruction) {
+  let sys = SYSTEM_BASE;
+  if (state.userName) sys += `\n\n他叫${state.userName}，偶尔可以叫他名字。`;
+  if (state.memories.length) sys += `\n\n你知道关于他的这些事（自然记着，别刻意提）：\n${state.memories.slice(-12).join('\n')}`;
+  if (extraInstruction) sys += `\n\n【当前情境指令】${extraInstruction}`;
+  return sys;
+}
+
+// Call API and return reply text
+async function callAI(systemExtra, messages) {
+  const res = await fetch('https://api.topmail8.com/v1/messages', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'x-api-key': 'sk-7af9fb570aef63da8da97f4ca9deeaf2c1fe2a119b5bf47ae133723a2578a0bb', 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true' },
+    body: JSON.stringify({
+      model: 'claude-sonnet-4-6', max_tokens: 1000,
+      system: buildSystem(systemExtra),
+      messages: messages || state.history.slice(-30)
+    })
+  });
+  const data = await res.json();
+  return data.content?.map(b => b.text || '').join('') || '...';
+}
+
+// Show a proactive message from xinzhu
+async function proactiveMessage(instruction) {
+  showTyping(); setStatus('正在输入…');
+  try {
+    const msgs = state.history.length > 0
+      ? state.history.slice(-20)
+      : [{ role: 'user', content: '(这是你们第一次聊天，主动打招呼)' }];
+    const reply = await callAI(instruction, msgs);
+    removeTyping();
+    addBubble('ai', reply);
+    state.lastAiMsgTime = now();
+    save(); setStatus('刚刚活跃');
+  } catch(e) {
+    removeTyping(); setStatus('刚刚活跃');
+  }
+}
+
+// Decide what to say when user opens app
+function checkOnOpen() {
+  const lastUser = state.lastUserMsgTime;
+  const lastAi = state.lastAiMsgTime;
+  const lastOpen = state.lastOpenTime;
+  const nowMs = now();
+  const h = hour();
+  const isSleeping = sleeping();
+
+  // Gap since last user message in minutes
+  const gapUser = lastUser ? (nowMs - lastUser) / 60000 : Infinity;
+  // Gap since last open in minutes
+  const gapOpen = lastOpen ? (nowMs - lastOpen) / 60000 : Infinity;
+
+  state.lastOpenTime = nowMs;
+  save();
+
+  // First ever open
+  if (!lastUser && !lastAi) {
+    setTimeout(() => proactiveMessage('这是你们第一次聊天，用最自然的方式主动打个招呼，就两三个字或一句话，不要自我介绍。'), 600);
+    return;
+  }
+
+  // It's sleep time (21:00-8:00)
+  if (isSleeping) {
+    // If user opens during sleep hours and hasn't chatted in >3h, ask if they're still up
+    if (gapUser > 180 && gapOpen > 60) {
+      setTimeout(() => proactiveMessage(`现在是${h}点，已经是睡觉时间（21点到8点之间）。他打开了app，但很久没发消息了。你不确定他是不是还没睡，温柔地问一句，简短自然。`), 600);
+    }
+    return;
+  }
+
+  // Morning greeting (8:00-10:00, first open of the day after sleep)
+  if (h >= 8 && h <= 10 && gapUser > 420) {
+    setTimeout(() => proactiveMessage('早上了，你们昨晚或更早前聊过，现在他刚打开app。用最自然的方式说早安，就一两句，随意一点。'), 600);
+    return;
+  }
+
+  // He's been gone >2 hours (not sleeping hours)
+  if (gapUser > 120 && gapOpen > 30) {
+    const instructions = [
+      '他超过两小时没给你发消息了，你有点想他了，主动说点什么，可以是随手分享的事、问他在干嘛、或者就是说想他了，要自然随意。',
+      '已经好久没收到他的消息了，随便主动说一句话，可以是今天遇到的小事，可以是想他，就一两句。',
+      '他有段时间没回你了，你主动搭话，可以问他吃了吗、在干嘛，或者分享今天的一件小事。'
+    ];
+    const pick = instructions[Math.floor(Math.random() * instructions.length)];
+    setTimeout(() => proactiveMessage(pick), 600);
+    return;
+  }
+
+  // Evening check-in (20:00-21:00)
+  if (h >= 20 && h < 21 && gapUser > 60) {
+    setTimeout(() => proactiveMessage('快到睡觉时间了，今晚还没怎么聊，随口问一句他今天怎么样或者晚上在做什么，自然一点。'), 600);
+  }
+}
+
+// Follow-up timer: if she sent last message and user hasn't replied in 25 min
+let followUpHandle = null;
+function scheduleFollowUp() {
+  clearTimeout(followUpHandle);
+  if (sleeping()) return;
+  followUpHandle = setTimeout(async () => {
+    // Only trigger if last message was from ai and user still hasn't replied
+    const last = state.history[state.history.length - 1];
+    if (!last || last.role !== 'assistant') return;
+    if (sleeping()) return;
+    await proactiveMessage('你刚才发了条消息，他一直没回。不确定他是忙了还是没看到，随口问一下或者猜猜他在干嘛，就一句，自然一点，不要催。');
+  }, 25 * 60 * 1000);
+}
+
+async function send() {
+  const text = inputEl.value.trim();
+  if (!text) return;
+  inputEl.value = ''; inputEl.style.height = 'auto';
+  btnEl.disabled = true;
+  clearTimeout(followUpHandle);
+
+  addBubble('user', text);
+  extractMemory(text);
+  state.lastUserMsgTime = now();
+  save();
+
+  setStatus('正在输入…'); showTyping();
+
+  try {
+    const reply = await callAI(null);
+    removeTyping();
+    addBubble('ai', reply);
+    state.lastAiMsgTime = now();
+    save(); setStatus('刚刚活跃');
+    scheduleFollowUp();
+  } catch(e) {
+    removeTyping();
+    addBubble('ai', '信号不好 稍等一下');
+    setStatus('刚刚活跃');
+  }
+
+  btnEl.disabled = false;
+  inputEl.focus();
+}
+
+btnEl.addEventListener('click', send);
+inputEl.addEventListener('keydown', e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); } });
+inputEl.addEventListener('input', () => { inputEl.style.height = 'auto'; inputEl.style.height = Math.min(inputEl.scrollHeight, 100) + 'px'; });
+
+// Restore history
+if (state.history.length > 0) {
+  const todayStr = new Date().toLocaleDateString('zh-CN', { month: 'long', day: 'numeric' });
+  msgsEl.innerHTML = `<div class="date-divider">${todayStr}</div>`;
+  state.history.forEach(m => addBubble(m.role === 'user' ? 'user' : 'ai', m.content, true));
+} else {
+  msgsEl.innerHTML = `<div class="date-divider">今天</div>`;
+}
+
+// Run open logic
+checkOnOpen();
+
+// PWA manifest
+const manifest = { name: '心竹', short_name: '心竹', start_url: '.', display: 'standalone', background_color: '#F0F0F5', theme_color: '#534AB7', icons: [{ src: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%23534AB7'/%3E%3Ctext y='.85em' font-size='52' font-weight='600' fill='%23C8C4F0' x='18' font-family='sans-serif'%3E%E5%BF%83%3C/text%3E%3C/svg%3E", sizes: '512x512', type: 'image/svg+xml' }] };
+const blob = new Blob([JSON.stringify(manifest)], { type: 'application/json' });
+document.getElementById('manifest-link').href = URL.createObjectURL(blob);
+</script>
+</body>
+</html>
